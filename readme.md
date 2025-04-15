@@ -154,7 +154,7 @@ Todos los informes se guardan automáticamente en una carpeta dentro de tu direc
 
 ```
 >[!NOTE]
->🗂️ Cada ejecución crea una nueva carpeta con fecha y hora, para que mantengas un histórico ordenado de auditorías realizadas.
+>🗂️ Cada **auditoría** crea una nueva carpeta con fecha y hora, para que mantengas un histórico ordenado de auditorías realizadas.
 
 
 
