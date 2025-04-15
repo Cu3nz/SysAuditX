@@ -230,3 +230,4 @@ tk.Button(ventana, text="Cambiar Tema (Claro/Oscuro)", command=cambiar_tema,
 
 aplicar_tema(ventana)
 ventana.mainloop()
+
