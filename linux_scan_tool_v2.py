@@ -5,7 +5,7 @@ import markdown2
 import pdfkit
 from datetime import datetime
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox , filedialog, simpledialog
 from threading import Thread
 from PIL import Image, ImageTk
 
@@ -14,6 +14,8 @@ txt_file = md_file = html_file = pdf_file = timestamp = output_dir = ""
 modo_oscuro = False
 imagen_label = None
 imagen_actual = None
+ruta_personalizada = None
+entry_ruta = None
 
 # ========== FUNCIONES BÁSICAS ==========
 def ejecutar_comando(comando):
@@ -32,15 +34,14 @@ def generar_contenido_txt():
         bloque = f"\n==================== {seccion} ====================\n"
         bloque += formatear_lista(resultado) + "\n" if como_lista else resultado + "\n"
         contenido.append(bloque)
-    
-        # ========== INFORMACIÓN GENERAL DEL SISTEMA ==========
+
+    # ========== INFORMACIÓN GENERAL DEL SISTEMA ==========
     log("INFORMACIÓN DEL SISTEMA", "uname -a")
     log("DISTRIBUCIÓN", "cat /etc/os-release")
     log("UPTIME", "uptime")
     log("FECHA Y HORA", "date")
     log("VARIABLES DE ENTORNO", "printenv", como_lista=True)
     log("CONFIGURACIÓN DE CIFRADO DE DISCO", "sudo cat /etc/crypttab", como_lista=True)
-
 
     # ========== HARDWARE ==========
     log("CPU", "lscpu")
@@ -67,7 +68,7 @@ def generar_contenido_txt():
     # ========== SEGURIDAD Y AUTENTICACIÓN ==========
     log("LOG DE AUTENTICACIÓN", "grep -i 'authentication' /var/log/auth.log | tail -n 20", como_lista=True)
     log("FALLOS DE LOGIN", "grep 'Failed password' /var/log/auth.log | tail -n 10")
-    log("ÚLTIMOS INICIOS DE SESIÓN", "last -n 10", como_lista=True)
+    log("ÚltIMOS INICIOS DE SESIÓN", "last -n 10", como_lista=True)
 
     # ========== HISTORIAL DE COMANDOS ==========
     log("HISTORIAL DE COMANDOS DEL USUARIO", "tail -n 20 ~/.bash_history")
@@ -77,7 +78,6 @@ def generar_contenido_txt():
     log("PROCESOS EN EJECUCIÓN (TOP 15)", "ps aux --sort=-%mem | head -n 15", como_lista=True)
     log("SERVICIOS ACTIVOS", "systemctl list-units --type=service --state=running | grep '.service'", como_lista=True)
 
-
     for archivo in ["/etc/passwd", "/etc/shadow", "/etc/sudoers"]:
         if os.path.exists(archivo):
             permisos = ejecutar_comando(f"ls -l {archivo}")
@@ -85,8 +85,19 @@ def generar_contenido_txt():
 
     return "".join(contenido)
 
-# ========== EXPORTACIÓN ==========
+# todo ========== EXPORTACIÓN ==========
 def exportar_formatos():
+    global txt_file, md_file, html_file, pdf_file, output_dir
+
+    nueva_ruta = entry_ruta.get()
+    if nueva_ruta and nueva_ruta.strip():
+        output_dir = os.path.expanduser(nueva_ruta.strip())
+        os.makedirs(output_dir, exist_ok=True)
+        txt_file = os.path.join(output_dir, "reporte.txt")
+        md_file = os.path.join(output_dir, "reporte.md")
+        html_file = os.path.join(output_dir, "reporte.html")
+        pdf_file = os.path.join(output_dir, "reporte.pdf")
+
     seleccionados = []
     contenido_txt = None
     if not any([var_txt.get(), var_md.get(), var_html.get(), var_pdf.get()]):
@@ -109,7 +120,7 @@ def exportar_formatos():
             f_md.write(f"# Informe de Auditoría del Sistema Linux\n\n**Fecha de generación:** {timestamp}\n\n___\n\n")
             for linea in contenido_txt.splitlines():
                 if "=====" in linea: f_md.write(f"\n\n## {linea.strip('= ')}\n")
-                elif linea.startswith("•"): f_md.write(f"- {linea[1:].strip()}\n")
+                elif linea.startswith("\u2022"): f_md.write(f"- {linea[1:].strip()}\n")
                 else: f_md.write(f"    {linea}\n")
         seleccionados.append("Markdown")
 
@@ -118,12 +129,12 @@ def exportar_formatos():
         html_contenido = f"# Informe de Auditoría del Sistema Linux\n\n**Fecha de generación:** {timestamp}\n\n___\n\n"
         for linea in contenido_txt.splitlines():
             if "=====" in linea: html_contenido += f"\n\n## {linea.strip('= ')}\n"
-            elif linea.startswith("•"): html_contenido += f"- {linea[1:].strip()}\n"
+            elif linea.startswith("\u2022"): html_contenido += f"- {linea[1:].strip()}\n"
             else: html_contenido += f"    {linea}\n"
         html_convertido = markdown2.markdown(html_contenido)
         with open(html_file, "w") as f_html:
             f_html.write(f"""<!DOCTYPE html><html><head><meta charset='utf-8'><title>Informe</title>
-            <style>body {{ font-family: Arial; margin: 40px; background:#f9f9f9; }} h1,h2 {{ color:#2c3e50; }}</style></head>
+            <style>body {{ font-family: Arial; font-size: 20px; margin: 40px; background:#f9f9f9; }} h1,h2 {{ color:#2c3e50; }}</style></head>
             <body>{html_convertido}</body></html>""")
         seleccionados.append("HTML")
 
@@ -143,7 +154,16 @@ def exportar_formatos():
         messagebox.showinfo("Exportación completada", resumen)
         ventana_opciones.destroy()
 
-# ========== GUI ==========
+# todo ========== GUI ==========
+
+def centrar_ventana(ventana, ancho, alto):
+    ventana.update_idletasks()
+    pantalla_ancho = ventana.winfo_screenwidth()
+    pantalla_alto = ventana.winfo_screenheight()
+    x = (pantalla_ancho // 2) - (ancho // 2)
+    y = (pantalla_alto // 2) - (alto // 2)
+    ventana.geometry(f"{ancho}x{alto}+{x}+{y}")
+
 def aplicar_tema(widget):
     colores = {
         "fondo": "#2E2E2E" if modo_oscuro else "#FFFFFF",
@@ -168,11 +188,12 @@ def actualizar_imagen():
         imagen_label.config(image=imagen_actual)
 
 def mostrar_opciones_exportacion():
-    global ventana_opciones, var_txt, var_md, var_html, var_pdf
+    global ventana_opciones, var_txt, var_md, var_html, var_pdf, entry_ruta
 
     ventana_opciones = tk.Toplevel(ventana)
     ventana_opciones.title("Exportar informe")
-    ventana_opciones.geometry("400x300")
+    #ventana_opciones.geometry("500x360")
+    centrar_ventana(ventana_opciones, 600, 600)
 
     var_txt = tk.BooleanVar()
     var_md = tk.BooleanVar()
@@ -184,6 +205,29 @@ def mostrar_opciones_exportacion():
     tk.Checkbutton(ventana_opciones, text="Markdown (.md)", variable=var_md).pack(anchor='w', padx=40)
     tk.Checkbutton(ventana_opciones, text="HTML (.html)", variable=var_html).pack(anchor='w', padx=40)
     tk.Checkbutton(ventana_opciones, text="PDF (.pdf)", variable=var_pdf).pack(anchor='w', padx=40)
+
+    tk.Label(ventana_opciones, text="Ruta para guardar el informe:").pack(pady=(20, 5))
+    frame_ruta = tk.Frame(ventana_opciones) #* Creamos un contenedor (frame) para agrupar el campo de texto y el botón de seleccionar carpeta
+    entry_ruta = tk.Entry(frame_ruta, width=45) #* Campo de entrada donde se mostrará la ruta para guardar el informe
+    entry_ruta.insert(0, output_dir) #* Establecemos la ruta por defecto.
+    entry_ruta.pack(side="left", padx=(0, 5)) #* Icono de la carpeta en la derecha
+
+    # todo  ========== Funcion para crear una ventana GUI donde el usuario pueda seleccionar una ruta personalizada, navengando por directorios ==========
+    # todo Función que se ejecuta al hacer clic en el icono de carpeta
+    def seleccionar_directorio():
+        ruta = filedialog.askdirectory() #* Esa línea lanza el diálogo gráfico nativo del sistema operativo (como el que muestras), donde el usuario puede navegar por carpetas y seleccionar una.
+        if ruta:
+            timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            entry_ruta.delete(0, tk.END)
+            entry_ruta.insert(0, os.path.join(ruta, f"auditoria_{timestamp}")) #* Inserta la ruta elegida + timestamp
+
+    boton_explorar = tk.Button(frame_ruta, text="📁", command=seleccionar_directorio) #* Botón con icono de carpeta que abre el selector de directorios
+    #* Coloca el botón con el icono de carpeta alineado a la derecha dentro del contenedor (frame_ruta).
+    #* Este botón permite abrir una ventana gráfica para seleccionar una carpeta.
+    #* La colocación 'side="right"' hace que se sitúe al lado derecho del Entry, dentro del mismo frame.
+    boton_explorar.pack(side="right")
+
+    frame_ruta.pack(pady=5) #*  Mostramos el frame completo en la ventana
 
     tk.Button(ventana_opciones, text="Exportar", command=exportar_formatos).pack(pady=20)
     aplicar_tema(ventana_opciones)
@@ -213,7 +257,9 @@ def cambiar_tema():
 # ========== VENTANA PRINCIPAL ==========
 ventana = tk.Tk()
 ventana.title("Herramienta de Auditoría Linux")
-ventana.geometry("600x600")
+#ventana.geometry("600x600")
+centrar_ventana(ventana, 600, 600)
+
 
 tk.Label(ventana, text="Auditoría del Sistema Linux", font=("Helvetica", 16, "bold")).pack(pady=(20, 10))
 
@@ -230,4 +276,3 @@ tk.Button(ventana, text="Cambiar Tema (Claro/Oscuro)", command=cambiar_tema,
 
 aplicar_tema(ventana)
 ventana.mainloop()
-
