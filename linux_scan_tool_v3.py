@@ -79,7 +79,98 @@ def generar_contenido_txt():
 
     return "".join(contenido)
 
-# ========== EXPORTACIÓN ==========
+# ========== PREPARACIÓN SIN CREAR CARPETA ==========
+def preparar_exportacion():
+    messagebox.showinfo("Auditoría preparada", "Datos listos. Ahora selecciona los formatos.")
+    mostrar_opciones_exportacion()
+
+# ========== INICIAR PROCESO ==========
+def iniciar_proceso():
+    Thread(target=preparar_exportacion).start()
+
+# ========== APLICAR TEMA ==========
+def aplicar_tema(widget):
+    colores = {
+        "fondo": "#2E2E2E" if modo_oscuro else "#FFFFFF",
+        "texto": "#FFFFFF" if modo_oscuro else "#000000",
+        "boton": "#4CAF50" if not modo_oscuro else "#3E8E41"
+    }
+    widget.configure(bg=colores["fondo"])
+    for child in widget.winfo_children():
+        try:
+            if isinstance(child, tk.Checkbutton):
+                child.configure(bg=colores["fondo"], fg=colores["texto"], selectcolor=colores["fondo"])
+            else:
+                child.configure(bg=colores["fondo"], fg=colores["texto"])
+        except:
+            pass
+    actualizar_imagen()
+
+# ========== ACTUALIZAR IMAGEN ==========
+def actualizar_imagen():
+    global imagen_actual
+    ruta = "img/white.png" if modo_oscuro else "img/black.png"
+    if os.path.exists(ruta):
+        imagen = Image.open(ruta)
+        imagen = imagen.resize((240, 240))
+        imagen_actual = ImageTk.PhotoImage(imagen)
+        imagen_label.config(image=imagen_actual)
+
+# ========== MOSTRAR OPCIONES ==========
+def mostrar_opciones_exportacion():
+    global ventana_opciones, var_txt, var_md, var_html, var_pdf, entry_ruta
+
+    ventana_opciones = tk.Toplevel(ventana)
+    ventana_opciones.title("Exportar informe")
+    centrar_ventana(ventana_opciones, 600, 600)
+
+    var_txt = tk.BooleanVar()
+    var_md = tk.BooleanVar()
+    var_html = tk.BooleanVar()
+    var_pdf = tk.BooleanVar()
+
+    tk.Label(ventana_opciones, text="Selecciona los formatos para exportar:").pack(pady=10)
+    tk.Checkbutton(ventana_opciones, text="TXT", variable=var_txt).pack(anchor='w', padx=40)
+    tk.Checkbutton(ventana_opciones, text="Markdown (.md)", variable=var_md).pack(anchor='w', padx=40)
+    tk.Checkbutton(ventana_opciones, text="HTML (.html)", variable=var_html).pack(anchor='w', padx=40)
+    tk.Checkbutton(ventana_opciones, text="PDF (.pdf)", variable=var_pdf).pack(anchor='w', padx=40)
+
+    tk.Label(ventana_opciones, text="Ruta para guardar el informe:").pack(pady=(20, 5))
+    frame_ruta = tk.Frame(ventana_opciones)
+    entry_ruta = tk.Entry(frame_ruta, width=45)
+    ruta_inicial = ultima_ruta_guardada if ultima_ruta_guardada else os.path.expanduser("~/Escritorio")
+    entry_ruta.insert(0, ruta_inicial)
+    entry_ruta.pack(side="left", padx=(0, 5))
+
+    def seleccionar_directorio():
+        ruta = filedialog.askdirectory()
+        if ruta:
+            entry_ruta.delete(0, tk.END)
+            entry_ruta.insert(0, ruta)
+
+    boton_explorar = tk.Button(frame_ruta, text="📁", command=seleccionar_directorio)
+    boton_explorar.pack(side="right")
+
+    frame_ruta.pack(pady=5)
+    tk.Button(ventana_opciones, text="Exportar", command=exportar_formatos).pack(pady=20)
+    aplicar_tema(ventana_opciones)
+
+# ========== CENTRAR VENTANA ==========
+def centrar_ventana(ventana, ancho, alto):
+    ventana.update_idletasks()
+    pantalla_ancho = ventana.winfo_screenwidth()
+    pantalla_alto = ventana.winfo_screenheight()
+    x = (pantalla_ancho // 2) - (ancho // 2)
+    y = (pantalla_alto // 2) - (alto // 2)
+    ventana.geometry(f"{ancho}x{alto}+{x}+{y}")
+
+# ========== CAMBIAR TEMA ==========
+def cambiar_tema():
+    global modo_oscuro
+    modo_oscuro = not modo_oscuro
+    aplicar_tema(ventana)
+
+# ========== EXPORTAR FORMATOS ==========
 def exportar_formatos():
     global txt_file, md_file, html_file, pdf_file, output_dir, ultima_ruta_guardada, timestamp
 
@@ -93,14 +184,11 @@ def exportar_formatos():
 
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     base_ruta = entry_ruta.get().strip()
-    if base_ruta:
-        base_ruta = os.path.expanduser(base_ruta)
-        if os.path.basename(base_ruta).startswith("auditoria_"):
-            base_ruta = os.path.dirname(base_ruta)
-    else:
-        base_ruta = os.path.expanduser("~/auditoria_linux_final")
+    if not base_ruta:
+        messagebox.showwarning("Ruta no válida", "Debes indicar una ruta de destino.")
+        return
 
-    # Solo crear carpeta si se va a generar al menos un archivo
+    base_ruta = os.path.expanduser(base_ruta)
     output_dir = os.path.join(base_ruta, f"auditoria_{timestamp}")
     os.makedirs(output_dir, exist_ok=True)
     ultima_ruta_guardada = base_ruta
@@ -112,9 +200,6 @@ def exportar_formatos():
 
     seleccionados = []
     contenido_txt = None
-    if not any([var_txt.get(), var_md.get(), var_html.get(), var_pdf.get()]):
-        messagebox.showwarning("Nada seleccionado", "Debes seleccionar al menos un formato.")
-        return
 
     for ruta, variable in [(txt_file, var_txt), (md_file, var_md), (html_file, var_html), (pdf_file, var_pdf)]:
         if not variable.get() and os.path.exists(ruta):
@@ -165,102 +250,6 @@ def exportar_formatos():
         resumen += f"\n\nUbicación:\n{output_dir}"
         messagebox.showinfo("Exportación completada", resumen)
         ventana_opciones.destroy()
-
-# todo ========== GUI ==========
-def centrar_ventana(ventana, ancho, alto):
-    ventana.update_idletasks()
-    pantalla_ancho = ventana.winfo_screenwidth()
-    pantalla_alto = ventana.winfo_screenheight()
-    x = (pantalla_ancho // 2) - (ancho // 2)
-    y = (pantalla_alto // 2) - (alto // 2)
-    ventana.geometry(f"{ancho}x{alto}+{x}+{y}")
-
-def aplicar_tema(widget):
-    colores = {
-        "fondo": "#2E2E2E" if modo_oscuro else "#FFFFFF",
-        "texto": "#FFFFFF" if modo_oscuro else "#000000",
-        "boton": "#4CAF50" if not modo_oscuro else "#3E8E41"
-    }
-    widget.configure(bg=colores["fondo"])
-    for child in widget.winfo_children():
-        try:
-            if isinstance(child, tk.Checkbutton):
-                child.configure(bg=colores["fondo"], fg=colores["texto"], selectcolor=colores["fondo"])  # * selectcolor corrige el borde feo en modo oscuro
-            else:
-                child.configure(bg=colores["fondo"], fg=colores["texto"])
-        except:
-            pass
-    actualizar_imagen()
-
-def actualizar_imagen():
-    global imagen_actual
-    ruta = "img/white.png" if modo_oscuro else "img/black.png"
-    if os.path.exists(ruta):
-        imagen = Image.open(ruta)
-        imagen = imagen.resize((240, 240))
-        imagen_actual = ImageTk.PhotoImage(imagen)
-        imagen_label.config(image=imagen_actual)
-
-def mostrar_opciones_exportacion():
-    global ventana_opciones, var_txt, var_md, var_html, var_pdf, entry_ruta
-
-    ventana_opciones = tk.Toplevel(ventana)
-    ventana_opciones.title("Exportar informe")
-    centrar_ventana(ventana_opciones, 600, 600)
-
-    var_txt = tk.BooleanVar()
-    var_md = tk.BooleanVar()
-    var_html = tk.BooleanVar()
-    var_pdf = tk.BooleanVar()
-
-    tk.Label(ventana_opciones, text="Selecciona los formatos para exportar:").pack(pady=10)
-    tk.Checkbutton(ventana_opciones, text="TXT", variable=var_txt).pack(anchor='w', padx=40)
-    tk.Checkbutton(ventana_opciones, text="Markdown (.md)", variable=var_md).pack(anchor='w', padx=40)
-    tk.Checkbutton(ventana_opciones, text="HTML (.html)", variable=var_html).pack(anchor='w', padx=40)
-    tk.Checkbutton(ventana_opciones, text="PDF (.pdf)", variable=var_pdf).pack(anchor='w', padx=40)
-
-    tk.Label(ventana_opciones, text="Ruta para guardar el informe:").pack(pady=(20, 5))
-    frame_ruta = tk.Frame(ventana_opciones)
-    entry_ruta = tk.Entry(frame_ruta, width=45)
-    ruta_inicial = ultima_ruta_guardada if ultima_ruta_guardada else output_dir  #? Usamos la última ruta si existe, si no la por defecto
-    entry_ruta.insert(0, ruta_inicial)
-    entry_ruta.pack(side="left", padx=(0, 5))
-
-    def seleccionar_directorio():
-        ruta = filedialog.askdirectory()
-        if ruta:
-            timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            entry_ruta.delete(0, tk.END)
-            entry_ruta.insert(0, os.path.join(ruta, f"auditoria_{timestamp}"))
-
-    boton_explorar = tk.Button(frame_ruta, text="📁", command=seleccionar_directorio)
-    boton_explorar.pack(side="right")
-
-    frame_ruta.pack(pady=5)
-    tk.Button(ventana_opciones, text="Exportar", command=exportar_formatos).pack(pady=20)
-    aplicar_tema(ventana_opciones)
-
-def preparar_exportacion():
-    global txt_file, md_file, html_file, pdf_file, timestamp, output_dir
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    output_dir = os.path.expanduser(f"~/auditoria_linux_final/auditoria_{timestamp}")
-    os.makedirs(output_dir, exist_ok=True)
-
-    txt_file = os.path.join(output_dir, "reporte.txt")
-    md_file = os.path.join(output_dir, "reporte.md")
-    html_file = os.path.join(output_dir, "reporte.html")
-    pdf_file = os.path.join(output_dir, "reporte.pdf")
-
-    messagebox.showinfo("Auditoría preparada", "Datos listos. Ahora selecciona los formatos.")
-    mostrar_opciones_exportacion()
-
-def iniciar_proceso():
-    Thread(target=preparar_exportacion).start()
-
-def cambiar_tema():
-    global modo_oscuro
-    modo_oscuro = not modo_oscuro
-    aplicar_tema(ventana)
 
 # ========== VENTANA PRINCIPAL ==========
 ventana = tk.Tk()
