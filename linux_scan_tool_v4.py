@@ -8,6 +8,8 @@ import tkinter as tk
 from tkinter import messagebox, filedialog
 from threading import Thread
 from PIL import Image, ImageTk
+import getpass
+
 
 # Variables globales
 txt_file = md_file = html_file = pdf_file = timestamp = output_dir = ""
@@ -143,7 +145,9 @@ def mostrar_opciones_exportacion():
     tk.Label(ventana_opciones, text="Ruta para guardar el informe:").pack(pady=(20, 5))
     frame_ruta = tk.Frame(ventana_opciones)
     entry_ruta = tk.Entry(frame_ruta, width=45)
-    ruta_inicial = ultima_ruta_guardada if ultima_ruta_guardada else os.path.expanduser("~/Escritorio")
+    #ruta_inicial = ultima_ruta_guardada if ultima_ruta_guardada else os.path.expanduser("~/Escritorio")
+    usuario_real = os.environ.get("SUDO_USER") or getpass.getuser() #* Coge el usuario del sistema ej: /home/sergio
+    ruta_inicial = ultima_ruta_guardada if ultima_ruta_guardada else f"/home/{usuario_real}/Escritorio" #* En vez de poner el user root, pone el que recoge en la variable usuario_real.
     entry_ruta.insert(0, ruta_inicial)
     entry_ruta.pack(side="left", padx=(0, 5))
 
@@ -262,8 +266,27 @@ def exportar_formatos():
     if seleccionados:
         resumen = "Se han generado los siguientes archivos:\n\n" + "\n".join(f"• {f}" for f in seleccionados)
         resumen += f"\n\nUbicación:\n{output_dir}"
-        messagebox.showinfo("Exportación completada", resumen)
-        ventana_opciones.destroy()
+        # Cambiar la propiedad de los archivos al usuario real si se ha ejecutado con sudo
+    usuario_real = os.environ.get("SUDO_USER") or getpass.getuser()
+    try:
+        import shutil
+
+        # Cambiar propietario de los archivos generados
+        for archivo in [txt_file, md_file, html_file, pdf_file]:
+            if os.path.exists(archivo):
+                shutil.chown(archivo, user=usuario_real)
+        # Cambiar propietario de la carpeta y su contenido
+        for root_dir, dirs, files in os.walk(output_dir):
+            shutil.chown(root_dir, user=usuario_real)
+            for d in dirs:
+                shutil.chown(os.path.join(root_dir, d), user=usuario_real)
+            for f in files:
+                shutil.chown(os.path.join(root_dir, f), user=usuario_real)
+    except Exception as e:
+        print(f"[ADVERTENCIA] No se pudieron cambiar los permisos: {e}")
+        
+    messagebox.showinfo("Exportación completada", resumen)
+    ventana_opciones.destroy()
 
 # ========== VENTANA PRINCIPAL ==========
 ventana = tk.Tk()
