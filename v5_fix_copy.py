@@ -64,7 +64,10 @@ def comprobar_o_instalar_lynis():
             instalar = ejecutar_comando("sudo apt update && sudo apt install -y lynis")
             ventana.lift()
             ventana.attributes('-topmost', True)
-            messagebox.showinfo("Instalación completa", "Lynis ha sido instalado correctamente.")
+            ventana.lift()
+            ventana.attributes('-topmost', True)
+            ventana.after(100, lambda: messagebox.showinfo("Instalación completa", "Lynis ha sido instalado correctamente. Puedes continuar con la auditoría."))
+            ventana.attributes('-topmost', False)
             ventana.attributes('-topmost', False)
         else:
             ventana.lift()
