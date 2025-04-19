@@ -347,7 +347,10 @@ def exportar_formatos():
     except Exception as e:
         print(f"[ADVERTENCIA] No se pudieron cambiar los permisos: {e}")
 
+    ventana.lift()
+    ventana.attributes('-topmost', True)
     messagebox.showinfo("Exportación completada", resumen)
+    ventana.attributes('-topmost', False)
     ventana_opciones.destroy()
 
 # ========== VENTANA PRINCIPAL ==========
