@@ -66,7 +66,8 @@ def comprobar_o_instalar_lynis():
             ventana.attributes('-topmost', True)
             ventana.lift()
             ventana.attributes('-topmost', True)
-            ventana.after(100, lambda: messagebox.showinfo("Instalación completa", "Lynis ha sido instalado correctamente. Puedes continuar con la auditoría."))
+            ventana.after(100, lambda: messagebox.showinfo("Instalación completa", "Lynis ha sido instalado correctamente y el informe ha sido generado. Puedes revisar los archivos exportados en la carpeta de destino."))
+            #ventana.after(100, lambda: messagebox.showinfo("Instalación completa", "Lynis ha sido instalado correctamente. Puedes continuar con la auditoría."))
             ventana.attributes('-topmost', False)
             ventana.attributes('-topmost', False)
         else:
