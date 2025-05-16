@@ -61,6 +61,30 @@ sudo apt install python3-tk wkhtmltopdf -y
   sudo apt install python3-pil.imagetk -y
 ```
 
+- ### 1.5 Instalar Netdiscover  
+  **Netdiscover** es una herramienta para detectar hosts activos en la red. Es utilizada por SysAuditX para el escaneo inicial.
+
+  ```bash
+  sudo apt install netdiscover -y
+  ```
+  Para comprobar que se ha instalado correctamente ejecuta el siguiente comando: 
+
+  ``` 
+   netdiscover --help
+  ````
+
+- ### 1.6 Instalar Nmap  
+  **Nmap** es una herramienta de escaneo de red que permite descubrir puertos y servicios activos en los equipos conectados. SysAuditX la utiliza para analizar cada IP detectada por Netdiscover.
+
+  ```bash
+  sudo apt install nmap -y
+  ```
+  Para comprobar que se ha instalado correctamente ejecuta el siguiente comando: 
+
+    ``` 
+    nmap --version
+   ```
+
 
 ## 📥 2. Clonado del Repositorio y Preparación del Entorno 
 
