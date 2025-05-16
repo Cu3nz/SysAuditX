@@ -154,7 +154,7 @@ sudo pip3 install -r requirements.txt
 Desde la carpeta raíz del proyecto, ejecuta el siguiente comando:
 
 ```
-sudo python3 linux_scan_tool.py
+sudo python3 SysAuditX.py
 ```
 > [!IMPORTANT]
 > Es **obligatorio** ejecutar la herramienta con **`sudo`** para que pueda acceder a información sensible del sistema, como logs, historiales del usuario root o configuraciones protegidas.
