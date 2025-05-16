@@ -130,7 +130,7 @@ sudo pip3 install -r requirements.txt
 - Si usas **Ubuntu 22.04 o inferior**:
 
 ```
-pip3 install -r requirements.txt
+sudo pip3 install -r requirements.txt
 ```
 - Si usas **Ubuntu 23.04 o superior**: 
 
